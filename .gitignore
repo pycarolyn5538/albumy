@@ -1,3 +1,6 @@
+apikey_tagging.txt
+apikey_caption.txt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

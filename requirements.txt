@@ -28,3 +28,4 @@ watchdog==0.10.2
 requests
 transformers
 timm
+pillow

@@ -7,14 +7,15 @@
 """
 import os
 from datetime import datetime
-
+from albumy.image_caption import image_captioning
+from albumy.image_tagging import tagging_query
 from flask import current_app
 from flask_avatars import Identicon
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from albumy.extensions import db, whooshee
-
+import requests
 # relationship table
 roles_permissions = db.Table('roles_permissions',
                              db.Column('role_id', db.Integer, db.ForeignKey('role.id')),
@@ -240,6 +241,24 @@ class Photo(db.Model):
     collectors = db.relationship('Collect', back_populates='collected', cascade='all')
     tags = db.relationship('Tag', secondary=tagging, back_populates='photos')
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        tag_list = []
+        if self.description is None:
+            self.description = image_captioning(str(os.getcwd() + r"/uploads/" + self.filename))
+        if not self.tags:
+            result_tag_list = tagging_query(str(os.getcwd() + r"/uploads/" + self.filename))
+            for tag_name in result_tag_list:
+                tag = Tag.query.filter_by(name=tag_name).first()
+                if tag is None:
+                    tag = Tag(name=tag_name, photos=[self])
+                    db.session.add(tag)
+                    db.session.commit()
+                else:
+                    tag.photos.append(self)
+                tag_list.append(tag)
+            self.tags = tag_list
+
 
 @whooshee.register_model('name')
 class Tag(db.Model):
@@ -247,6 +266,10 @@ class Tag(db.Model):
     name = db.Column(db.String(64), index=True, unique=True)
 
     photos = db.relationship('Photo', secondary=tagging, back_populates='tags')
+
+    # self.name = tagging_query(str(os.getcwd() + r"/uploads/" + self.filename))
+
+
 
 
 class Comment(db.Model):
